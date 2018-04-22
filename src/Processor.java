@@ -10,32 +10,14 @@ public class Processor {
 	public boolean[] singleToHalfPrecision(boolean[] singleBits) {
 		return new boolean[2];
 	}
+	// Expects a 23 bit custom precision number as stated in the first milestone document
+	public static float customToSinglePrecision(int bits) {
+		int sign = (bits & 0x200000) << 9;
+		int exp = (((bits >>> 17) + 127) << 23) & 0x7F800000;
+		int manti = (bits & 0x1FFFF) << 7;
 
-	public static int singleToHalfPrecision(int singleBits) {
-		int halfBits = (singleBits >> 16) & 0x8000;	// Move and mask sign bit
-		int mant = (singleBits >> 12) & 0x07FF;		// Mantissa + extra bit to round
-		int exp = (singleBits >> 23) & 0xFF;		// Exponent
-	
-		if (exp < 103) {
-			return halfBits;
-		}
-
-		if (exp > 142) {
-			halfBits = halfBits | 0x7c00;
-			//halfBits |= exp == 255 && (singleBits & 0x007FFFFF);
-			return halfBits;
-		}
-
-		if (exp < 113) {
-			mant = mant | 0x0800;
-			halfBits = halfBits | (mant >> (114 - exp)) + ((mant >>(113 - exp)) & 1);
-			return halfBits;
-		}
-
-		halfBits = halfBits | ((exp - 112) << 10) | (mant >> 1);
-		halfBits += mant & 1;
-		return halfBits;
-	}	
+		return Float.intBitsToFloat(sign | exp | manti);
+	}
 
 	public static class RegisterFile {
 		
