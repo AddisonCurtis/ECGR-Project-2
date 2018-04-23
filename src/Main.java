@@ -1,8 +1,30 @@
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+
 public class Main {
 
-	public static void main(String[] args) {
-		String test = "Set R1, #5.7\t\t\t\t--m2";
+	public static void main(String[] args) throws IOException {
+		/*
+		if (args.length != 1) {
+			System.out.println("The single argument should be the program to load.");
+			return;
+		}
+
+		List<Integer> instrBins = new ArrayList<>();
+
+		for (String instrStr : Files.readAllLines(new File("Program" + args[0] + ".txt").toPath())) {
+			instrBins.add(translate(instrStr));
+		}
+		*/
+
+
+
+
+		String test = "Set R1, #3.14159265\t\t\t\t--m2";
 		printBoolArray(Float.floatToIntBits(Float.parseFloat("3.14159265")));
 		printBoolArray(Float.floatToIntBits(Processor.customToSinglePrecision(translate(test) & 0x7FFFFF)));
 		System.out.println(Float.parseFloat(test.replaceAll("\\s*(--.*)?$", "").replace(" ", ",").split(",+")[2].replace("#", "")));
@@ -26,12 +48,12 @@ public class Main {
 		int dest = Integer.parseInt(tokens[1].replace("R", "")) << 23;
 
 		int src1, src2 = 0; // src2 has a max value of 524288 for integer immediates, but that shouldn't matter
-							// because raising something to that power would go out of bound of single precision anyway
+							// because raising something to that power would go out of bounds for single precision anyway
 
 		if (opcode >>> 27 == 0) { // F Type - Parse floating point stuff
 			src1 = Float.floatToIntBits(Float.parseFloat(tokens[2].replace("#", "")));
 			int sign = (src1 >>> 9) & 0x20000;
-			int exp = ((((src1 & 0x7f800000) >>> 23) - 127) << 17) & 0x3E0000;
+			int exp = ((((src1 & 0x7f800000) >>> 23) - 112) << 17) & 0x3E0000;
 			int manti = (src1 >>> 7) & 0x1FFFF;
 
 			src1 = sign | exp | manti;
@@ -46,7 +68,7 @@ public class Main {
 		return opcode | dest | src1 | src2; // Assumes that all pieces have already been shifted into the right place
 	}
 
-	public static boolean[] toBooleanArray(int num) {
+	private static boolean[] toBooleanArray(int num) {
 		boolean[] bits = new boolean[32];
 		for (int i = 31; i >= 0; --i) {
 			bits[31-i] = (num & (1 << i)) != 0;
@@ -58,7 +80,7 @@ public class Main {
 		return toBooleanArray(Float.floatToIntBits(num));
 	}
 
-	public static int toIntBits(boolean[] bitArray) {
+	private static int toIntBits(boolean[] bitArray) {
 		int bits = 0;
 		for (boolean bit : bitArray) {
 			bits = (bits << 1) + (bit ? 1 : 0);
@@ -71,11 +93,11 @@ public class Main {
 		return Float.intBitsToFloat(toIntBits(bits));
 	}
 
-	public static void printBoolArray(int arrBits) {
+	private static void printBoolArray(int arrBits) {
 		printBoolArray(toBooleanArray(arrBits));
 	}
 
-	public static void printBoolArray(boolean[] arr) {
+	private static void printBoolArray(boolean[] arr) {
 		System.out.print("[");
 		for(boolean temp : arr) {
 			System.out.print(temp?"1":"0");
