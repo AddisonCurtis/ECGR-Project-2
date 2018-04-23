@@ -154,11 +154,11 @@ public class Processor {
         }
         
         private int floor() {
-            return Float.floatToIntBits((float) Math.floor(Float.intBitsToFloat(a))); // TODO
+            return Float.floatToIntBits((float) Math.floor(Float.intBitsToFloat(a)));
         }
         
         private int ceiling() {
-            return 0; // TODO
+            return Float.floatToIntBits((float) Math.ceil(Float.intBitsToFloat(a)));
         }
         
         private int round() {
