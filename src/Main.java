@@ -30,6 +30,8 @@ public class Main {
         System.out.println(Float.parseFloat(test.replaceAll("\\s*(--.*)?$", "").replace(" ", ",").split(",+")[2].replace("#", "")));
         System.out.println(Processor.customToSinglePrecision(translate(test) & 0x7FFFFF));
         
+        
+        
     }
     
     private static String[] instrNames = {"Set","Get","Move","Fadd","Fsub","Fneg","Fmul","Fdiv","Floor","Ceil","Round","Fabs",

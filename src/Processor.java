@@ -154,11 +154,13 @@ public class Processor {
         }
         
         private int floor() {
-            return Float.floatToIntBits((float) Math.floor(Float.intBitsToFloat(a)));
+            return a & 0xFF800000; //Mask out the mantissa bits so that the fraction becomes 0
         }
         
         private int ceiling() {
-            return Float.floatToIntBits((float) Math.ceil(Float.intBitsToFloat(a)));
+            a = a & 0xFF800000; //Mask out the mantissa bits so that the fraction becomes 0
+            a++; //Increment a to the next highest integer
+            return a;
         }
         
         private int round() {
@@ -250,7 +252,7 @@ public class Processor {
         }
         
         public int addition() {
-            return 0; // TODO
+            return 0; //TODO
         }
         
         public int subtraction() {
@@ -267,11 +269,67 @@ public class Processor {
         }
         
         public int minimum() {
-            return 0; // TODO
+            //Mask and isolate the sign bits of each number
+            int signA = a & 0x80000000;
+            int signB = b & 0x80000000;
+            
+            //If one of the numbers is positive and the other is negative, return the positive one; otherwise, move on
+            if (signA < signB)
+                return a;
+            else if (signB < signA)
+                return b;
+            
+            //Mask and isolate the exponent bits of each number
+            int expA = a << 1 >> 24;
+            int expB = b << 1 >> 24;
+            
+            //Return the number with the lower exponent; if they're the same, then move on
+            if (expA < expB)
+                return a;
+            else if (expB < expA)
+                return b;
+            
+            //Mask and isolate the mantissa bits of each number
+            int mantissaA = a & 0x007FFFFF;
+            int mantissaB = b & 0x007FFFFF;
+            
+            //Return the number with the lower mantissa
+            if (mantissaA < mantissaB)
+                return a;
+            else
+                return b;
         }
         
         public int maximum() {
-            return 0; // TODO
+            //Mask and isolate the sign bits of each number
+            int signA = a & 0x80000000;
+            int signB = b & 0x80000000;
+            
+            //If one of the numbers is positive and the other is negative, return the positive one; otherwise, move on
+            if (signA > signB)
+                return a;
+            else if (signB > signA)
+                return b;
+            
+            //Mask and isolate the exponent bits of each number
+            int expA = a << 1 >> 24;
+            int expB = b << 1 >> 24;
+            
+            //Return the number with the higher exponent; if they're the same, then move on
+            if (expA > expB)
+                return a;
+            else if (expB > expA)
+                return b;
+            
+            //Mask and isolate the mantissa bits of each number
+            int mantissaA = a & 0x007FFFFF;
+            int mantissaB = b & 0x007FFFFF;
+            
+            //Return the number with the higher mantissa
+            if (mantissaA > mantissaB)
+                return a;
+            else
+                return b;
         }
         
         public int power() {
