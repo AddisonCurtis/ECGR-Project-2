@@ -154,17 +154,79 @@ public class Processor {
         }
         
         private int floor() {
-            return a & 0xFF800000; //Mask out the mantissa bits so that the fraction becomes 0
+            int sign = a & 0x80000000; //Mask and isolate the number's sign bit
+            int exp = a & 0xEF800000; //Mask and isolate the number's exponent bits
+            int mantissa = a & 0x007FFFFF; //Mask and isolate the number's mantissa bits
+            sign >>= 31; //Shift the sign bit over all the way to the right
+            exp >>= 23; //Shift the exponent bits all the way over to the right
+            
+            //If the exponent is negative, return 0
+            if (exp - 127 < 0)
+                return 0x00000000;
+            
+            //Get rid of the fraction in the mantissa by shifting it right by the value in the exponent minus 127, then shift it back (with the new 0s) by the same amount
+            mantissa >>= exp - 127 << exp - 127;
+            
+            //If the number is positive, just return the new number by ORing the sign, exponent, and mantissa bits
+            if (sign == 0)
+                return sign | exp | mantissa;
+            
+            //Get rid of the fraction part of the mantissa by shifting it over by the value represented by the exponent bits minus the bias
+            mantissa >>= exp - 127;
+            //Increment the integer part of the mantissa
+            mantissa++;
+            //Shift the mantissa back over to its original position
+            mantissa <<= exp - 127;
+            
+            //Return the OR product of the new sign, exponent, and mantissa bits
+            return sign | exp | mantissa;
         }
         
         private int ceiling() {
-            a = a & 0xFF800000; //Mask out the mantissa bits so that the fraction becomes 0
-            a++; //Increment a to the next highest integer
-            return a;
+            int sign = a & 0x80000000; //Mask and isolate the number's sign bit
+            int exp = a & 0xEF800000; //Mask and isolate the number's exponent bits
+            int mantissa = a & 0x007FFFFF; //Mask and isolate the number's mantissa bits
+            sign >>= 31; //Shift the sign bit over all the way to the right
+            exp >>= 23; //Shift the exponent bits all the way over to the right
+            
+            //If the exponent is negative, return 1
+            if (exp - 127 < 0)
+                return 0x40000000;
+            
+            //Get rid of the fraction in the mantissa by shifting it right by the value in the exponent minus 127, then shift it back (with the new 0s) by the same amount
+            mantissa >>= exp - 127 << exp - 127;
+            
+            //If the number is negative, just return the new number by ORing the sign, exponent, and mantissa bits
+            if (sign == 1)
+                return sign | exp | mantissa;
+            
+            //Get rid of the fraction part of the mantissa by shifting it over by the value represented by the exponent bits minus the bias
+            mantissa >>= exp - 127;
+            //Increment the integer part of the mantissa
+            mantissa++;
+            //Shift the mantissa back over to its original position
+            mantissa <<= exp - 127;
+            
+            //Return the OR product of the new sign, exponent, and mantissa bits
+            return sign | exp | mantissa;
         }
         
         private int round() {
-            return 0; // TODO
+            int sign = a & 0x80000000; //Mask and isolate the number's sign bit
+            int exp = a & 0xEF800000; //Mask and isolate the number's exponent bits
+            int mantissa = a & 0x007FFFFF; //Mask and isolate the number's mantissa bits
+            sign >>= 31; //Shift the sign bit over all the way to the right
+            exp >>= 23; //Shift the exponent bits all the way over to the right
+            
+            //Isolate the fraction part of the mantissa by shifting the whole number to the left by 9 (sign + exponent bits) minus the bias, then get the first two fraction bits by shifting it all to the right again by 30
+            int fraction = mantissa << 9 + exp - 127 >> 30;
+            
+            //If the two remaining fraction bits are greater than or equal to 2 (fraction >= .5), round up using the ceiling() function
+            if (fraction >= 2)
+                return ceiling();
+            //Otherwise, round down using the floor() function
+            else
+                return floor();
         }
         
         private int absolute() {
@@ -288,7 +350,6 @@ public class Processor {
             
             sum = signSum | expSum | mantissaSum;
             
-            
             return sum;
         }
         
@@ -298,6 +359,28 @@ public class Processor {
         }
         
         public int multiplication() {
+            int sum, signSum, expSum, mantissaSum;
+            int signA = a & 0x80000000;
+            int signB = b & 0x80000000;
+            int expA = a & 0x7F800000;
+            int expB = b & 0x7F800000;
+            int mantissaA = a & 0x007FFFFF;
+            int mantissaB = b & 0x007FFFFF;
+            
+            signSum = signA ^ signB;
+            
+            if (signA == signB)
+                expSum = expA + expB - 0x3F800000;
+            else
+                expSum = expA - expB - 0x3F800000;
+            
+            mantissaSum = mantissaA * mantissaB;
+            
+            int shiftCheck = mantissaSum >> 23;
+            int shift = ((int) Math.log(shiftCheck) / (int) Math.log(2));
+            mantissaSum >>= shift;
+            expSum += shift;
+            
             return 0; // TODO
         }
         
