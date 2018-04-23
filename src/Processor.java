@@ -209,11 +209,11 @@ public class Processor {
         }
         
         private int logarithm() {
-            return 0; // TODO
+            return Float.floatToIntBits((float) Math.log(Float.intBitsToFloat(a))); // TODO
         }
         
         private int squareRoot() {
-            return 0; // TODO
+            return Float.floatToIntBits((float) Math.sqrt(Float.intBitsToFloat(a)));
         }
     }
     
@@ -252,7 +252,44 @@ public class Processor {
         }
         
         public int addition() {
-            return 0; //TODO
+            int sum, signSum, expSum, mantissaSum;
+            int signA = a & 0x80000000;
+            int signB = b & 0x80000000;
+            int expA = a & 0x7F800000;
+            int expB = b & 0x7F800000;
+            int mantissaA = a & 0x007FFFFF;
+            int mantissaB = b & 0x007FFFFF;
+            
+            if (expA > expB){
+                mantissaB >>= expA >> 23 - expB >> 23;
+                expB = expA;
+            }
+            else{
+                mantissaA >>= expB >> 23 - expA >> 23;
+                expA = expB;
+            }
+            
+            expSum = expA;
+            
+            if (signA != signB)
+                mantissaSum = mantissaA - mantissaB;
+            else
+                mantissaSum = mantissaA + mantissaB;
+            
+            if ((mantissaSum & 0x80000000) == 0x80000000)
+                signSum = 0x80000000;
+            else
+                signSum = 0x00000000;
+            
+            int shiftCheck = mantissaSum >> 23;
+            int shift = ((int) Math.log(shiftCheck) / (int) Math.log(2));
+            mantissaSum >>= shift;
+            expSum += shift;
+            
+            sum = signSum | expSum | mantissaSum;
+            
+            
+            return sum;
         }
         
         public int subtraction() {
@@ -280,8 +317,8 @@ public class Processor {
                 return b;
             
             //Mask and isolate the exponent bits of each number
-            int expA = a << 1 >> 24;
-            int expB = b << 1 >> 24;
+            int expA = a & 0x7F800000;
+            int expB = b & 0x7F800000;
             
             //Return the number with the lower exponent; if they're the same, then move on
             if (expA < expB)
@@ -312,8 +349,8 @@ public class Processor {
                 return b;
             
             //Mask and isolate the exponent bits of each number
-            int expA = a << 1 >> 24;
-            int expB = b << 1 >> 24;
+            int expA = a & 0x7F800000;
+            int expB = b & 0x7F800000;
             
             //Return the number with the higher exponent; if they're the same, then move on
             if (expA > expB)
