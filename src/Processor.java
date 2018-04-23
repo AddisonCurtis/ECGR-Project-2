@@ -201,11 +201,11 @@ public class Processor {
         }
         
         private int tangent() {
-            return 0; // TODO
+            return sine() / cosine();
         }
         
         private int exponent() {
-            return 0; // TODO
+            return Float.floatToIntBits((float) Math.pow(Math.E, Float.intBitsToFloat(a)));
         }
         
         private int logarithm() {
