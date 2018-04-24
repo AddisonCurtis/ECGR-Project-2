@@ -248,7 +248,6 @@ public class Processor {
             
             int power = a & 0xFF800000;
             int mantissa = a & 0x007FFFFF;
-            System.out.println(Float.intBitsToFloat(exp));
             
             mantissa >>= (int) (23 - Math.log(Float.intBitsToFloat(exp)) / Math.log(2));
             if (Float.intBitsToFloat(a) < 0){
@@ -260,32 +259,24 @@ public class Processor {
         }
         
         private int ceiling() {
-            int sign = a & 0x80000000; //Mask and isolate the number's sign bit
-            int exp = a & 0xEF800000; //Mask and isolate the number's exponent bits
-            int mantissa = a & 0x007FFFFF; //Mask and isolate the number's mantissa bits
-            sign >>= 31; //Shift the sign bit over all the way to the right
-            exp >>= 23; //Shift the exponent bits all the way over to the right
+            int exp = a & 0x7F800000;
             
-            //If the exponent is negative, return 1
-            if (exp - 127 < 0)
-                return 0x40000000;
+            if (Float.intBitsToFloat(exp) < 1 && Float.intBitsToFloat(exp) > 0 && Float.intBitsToFloat(a) < 0)
+                return 0x00000000;
+            else if (Float.intBitsToFloat(exp) < 1 && Float.intBitsToFloat(exp) > 0 && Float.intBitsToFloat(a) >= 0)
+                return 0x3F800000;
             
-            //Get rid of the fraction in the mantissa by shifting it right by the value in the exponent minus 127, then shift it back (with the new 0s) by the same amount
-            mantissa >>= exp - 127 << exp - 127;
             
-            //If the number is negative, just return the new number by ORing the sign, exponent, and mantissa bits
-            if (sign == 1)
-                return sign | exp | mantissa;
+            int power = a & 0xFF800000;
+            int mantissa = a & 0x007FFFFF;
             
-            //Get rid of the fraction part of the mantissa by shifting it over by the value represented by the exponent bits minus the bias
-            mantissa >>= exp - 127;
-            //Increment the integer part of the mantissa
-            mantissa++;
-            //Shift the mantissa back over to its original position
-            mantissa <<= exp - 127;
+            mantissa >>= (int) (23 - Math.log(Float.intBitsToFloat(exp)) / Math.log(2));
+            if (Float.intBitsToFloat(a) > 0){
+                mantissa += 0x00000001;
+            }
+            mantissa <<= (int) (23 - Math.log(Float.intBitsToFloat(exp)) / Math.log(2));
             
-            //Return the OR product of the new sign, exponent, and mantissa bits
-            return sign | exp | mantissa;
+            return power | mantissa;
         }
         
         private int round() {
