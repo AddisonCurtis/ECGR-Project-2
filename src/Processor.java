@@ -45,6 +45,7 @@ class Processor {
 			}
 			alu.inputB(b);
 
+			// Mux
 			int wd;
 			if (control.regWriteSrc() == 0) {
 				wd = alu.process();
@@ -72,18 +73,13 @@ class Processor {
 		mask <<= right;
 		return (bits & mask) >>> right;
 	}
-
-	// Quick function to make it a bit more clear whats being done
-	static int mux(int control, int[] inputs) {
-		return inputs[control];
-	}
 	
 	// Expects a 23 bit custom precision number as stated in the first milestone document
 	private static float customToSinglePrecision(int bits) {
-		int sign = (bits & 0x200000) << 9;
-		int exp = (((bits >>> 17) + 112) << 23) & 0x7F800000;
+		int sign = (bits & 0x400000) << 9;
+		int exp = ((((bits & 0x3E0000) >>> 17) + 112) << 23) & 0x7F800000;
 		int manti = (bits & 0x1FFFF) << 7;
-		
+
 		return Float.intBitsToFloat(sign | exp | manti);
 	}
 
@@ -195,16 +191,16 @@ class Processor {
 		
 		int process() {
 			switch (aluOp) {
-				case 0: return a;
-				case 1: return addition();
-				case 2: return subtraction();
-				case 3: return negate();
-				case 4: return multiplication();
-				case 5: return division();
-				case 6: return floor();
-				case 7: return ceiling();
-				case 8: return round();
-				case 9: return absolute();
+				case 0:  return a;
+				case 1:  return addition();
+				case 2:  return subtraction();
+				case 3:  return negate();
+				case 4:  return multiplication();
+				case 5:  return division();
+				case 6:  return floor();
+				case 7:  return ceiling();
+				case 8:  return round();
+				case 9:  return absolute();
 				case 10: return inverse();
 				case 11: return minimum();
 				case 12: return maximum();
@@ -220,45 +216,96 @@ class Processor {
 		}
 		
 		int addition() {
-			int sum, signSum, expSum, mantissaSum;
+			if(a==0x40000000 || b==0x40000000) { // If adding to zero, return early
+				return a==0x40000000?b:a;
+			}
+			Main.printBits(a);
+			Main.printBits(b);
+
+			int sumSign, sumExp, sumMant;
 			int signA = a & 0x80000000;
 			int signB = b & 0x80000000;
 			int expA = a & 0x7F800000;
 			int expB = b & 0x7F800000;
 			int mantissaA = (a & 0x007FFFFF) | 0x00800000; // Add the implicit one to both mantissa
 			int mantissaB = (b & 0x007FFFFF) | 0x00800000;
-			
+			System.out.print("A: ");
+			Main.printBits(a);
+			System.out.print("B: ");
+			Main.printBits(b);
+			//System.out.println(Float.intBitsToFloat(b));
+
+			// Rewrite smaller number to have the same exponent as the larger one
 			if (expA > expB){
 				mantissaB >>>= ((expA >>> 23) - (expB >>> 23));
-				expSum = expA;
+				sumExp = expA;
 			}
 			else {
 				mantissaA >>>= ((expB >>> 23) - (expA >>> 23));
-				expSum = expB;
+				sumExp = expB;
 			}
-			// !!!!!!!!!! Left off here
-			if (signA != signB) {
-				mantissaSum = mantissaA - mantissaB;
+
+			// Add the mantissa together
+			//System.out.print("A mant: ");
+			//Main.printBits(mantissaA);
+			//System.out.print("B mant: ");
+			//Main.printBits(mantissaB);
+			if (signA == signB) {
+				sumMant = mantissaA + mantissaB;
 			}
-			else {
-				mantissaSum = mantissaA + mantissaB;
+			else if (signA < signB) { // A is negative, B isn't
+				sumMant = -mantissaA + mantissaB;
+			} else {                  // B is negative, A isn't
+				sumMant = mantissaA - mantissaB;
+			}
+
+			//System.out.print("Post subtract manti: ");
+			//Main.printBits(sumMant);
+			if (sumMant < 0) { // If the result of adding the mantissa together is negative, then the
+			                   // sign of the sum will need to be negative and the mantissa needs to be a positive int
+				sumSign = 0x80000000;
+				sumMant =  Math.abs(sumMant);
+			} else {
+				sumSign = 0x00000000;
+			}
+
+			if (signA == signB) {
+				sumSign = signA;
+			}
+
+			//System.out.print("Abs manti: ");
+			//Main.printBits(sumMant);
+			//Main.printBits(sumExp);
+			
+			// Check if sum is normal, if not, then normalize it
+			if (sumMant >>> 23 == 0) { // Leading zero, need to left shift
+				for (int i=22; i>0; i--) { // Find how much the mantissa needs to be shifted to normalize it
+					if (sumMant >>> i == 1) {
+						sumMant = (sumMant << (23-i)) & 0x007FFFFF; // Normalize mantissa and remove implicit 1
+						sumExp -= (23-i) << 23; // Add the correct change to the exponent
+						break;
+					}
+				}
+			} else if (sumMant >>> 23 > 1) {
+				for (int i=1; i<9; i++) { // Find how much the mantissa needs to be shifted to normalize it
+					if (sumMant >>> (23+i) == 1) {
+						sumMant = (sumMant >>> i) & 0x007FFFFF; // Normalize mantissa and remove implicit 1
+						sumExp += i << 23; // Add the correct change to the exponent
+						break;
+					}
+				}
+			}
+
+			// Check for over and underflow
+			if ((sumExp >>> 23)-127 < -126) { // Too small
+				sumMant = 0; // round to zero
+				System.out.println("Rounded to zero");
+			} else if ((sumExp >>> 23)-127 > 127) { // Too big
+				sumExp = 127 << 23; // Clamp to max
+				System.out.println("Clamped to max");
 			}
 			
-			if ((mantissaSum & 0x80000000) == 0x80000000) {
-				signSum = 0x80000000;
-			}
-			else {
-				signSum = 0x00000000;
-			}
-			
-			int shiftCheck = mantissaSum >> 23;
-			int shift = ((int) Math.log(shiftCheck) / (int) Math.log(2));
-			mantissaSum >>>= shift;
-			expSum += shift;
-			
-			sum = signSum | expSum | mantissaSum;
-			
-			return sum;
+			return sumSign | sumExp | sumMant;
 		}
 		
 		int subtraction() {
@@ -271,7 +318,7 @@ class Processor {
 		}
 		
 		int multiplication() {
-			int sum, signSum, expSum, mantissaSum;
+			int sum, signSum, expSum, sumMant;
 			int signA = a & 0x80000000;
 			int signB = b & 0x80000000;
 			int expA = a & 0x7F800000;
@@ -286,11 +333,11 @@ class Processor {
 			else
 				expSum = expA - expB - 0x3F800000;
 			
-			mantissaSum = mantissaA * mantissaB;
+			sumMant = mantissaA * mantissaB;
 			
-			int shiftCheck = mantissaSum >> 23;
+			int shiftCheck = sumMant >> 23;
 			int shift = ((int) Math.log(shiftCheck) / (int) Math.log(2));
-			mantissaSum >>= shift;
+			sumMant >>= shift;
 			expSum += shift;
 			
 			return 0; // TODO
@@ -312,7 +359,7 @@ class Processor {
 			int power = a & 0xFF800000;
 			int mantissa = a & 0x007FFFFF;
 			
-			mantissa >>= (int) (23 - Math.log(Float.intBitsToFloat(exp)) / Math.log(2));
+			mantissa >>>= (int) (23 - Math.log(Float.intBitsToFloat(exp)) / Math.log(2));
 			if (Float.intBitsToFloat(a) < 0){
 				mantissa += 0x00000001;
 			}
@@ -333,7 +380,7 @@ class Processor {
 			int power = a & 0xFF800000;
 			int mantissa = a & 0x007FFFFF;
 			
-			mantissa >>= (int) (23 - Math.log(Float.intBitsToFloat(exp)) / Math.log(2));
+			mantissa >>>= (int) (23 - Math.log(Float.intBitsToFloat(exp)) / Math.log(2));
 			if (Float.intBitsToFloat(a) > 0){
 				mantissa += 0x00000001;
 			}
@@ -351,7 +398,7 @@ class Processor {
 				return 0x3F800000;
 			int mantissa = a & 0x007FFFFF;
 			
-			mantissa >>= (int) ((23 - Math.log(Float.intBitsToFloat(exp)) / Math.log(2)) - 1);
+			mantissa >>>= (int) ((23 - Math.log(Float.intBitsToFloat(exp)) / Math.log(2)) - 1);
 			
 			if (((mantissa & 0x00000001) == 1 && (a & 0x80000000) == 0) || ((mantissa & 0x00000001) == 0 && (a & 0x80000000) == 0x80000000))
 				return ceiling();
