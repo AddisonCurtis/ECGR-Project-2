@@ -58,7 +58,7 @@ public class Processor {
 			registerFile.process(); // Update the register file for the new value
 		}
 
-		return outputs.stream().mapToInt(i -> i).toArray(); // Dealing with type safety gone wrong
+		return outputs.size() == 0 ? registerFile.registers : outputs.stream().mapToInt(i -> i).toArray(); // Dealing with type safety gone wrong
 	}
 
 	// Mask a range of bits and return them shifted to the right
@@ -70,8 +70,9 @@ public class Processor {
 		}
 
 		int mask = 0xFFFFFFFF;
-		mask >>= 31 - (left - right);
-		return bits & mask;
+		mask >>>= 31 - (left - right);
+		mask <<= right;
+		return (bits & mask) >>> right;
 	}
 
 	// Quick function to make it a bit more clear whats being done
@@ -122,7 +123,7 @@ public class Processor {
 		}
 
 		public int aluOp() {
-			return opcode == 1?0:opcode+2;
+			return opcode == 1?0:opcode-2;
 		}
 	}
 	
