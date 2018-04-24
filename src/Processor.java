@@ -307,7 +307,6 @@ public class Processor {
             else if (Float.intBitsToFloat(exp) < 1 && Float.intBitsToFloat(exp) > 0 && Float.intBitsToFloat(a) >= 0)
                 return 0x00000000;
             
-            
             int power = a & 0xFF800000;
             int mantissa = a & 0x007FFFFF;
             
