@@ -438,28 +438,25 @@ class Processor {
 		}
 
 		int sine() {
-			float sum, t, rad;
-			rad = Float.intBitsToFloat(a) * (3.14159F/180.0F);
-			sum = t = 1;
+			float x = Float.intBitsToFloat(a);
+			float result = 0;
 
-			for (int i = 0; i < 100; i += 2) {
-				t = t * (-1) * rad * rad / (i * (i + 1));
-				sum += t;
+			for (int i = 0; i < 100; i++) {
+				result += pow(-1, i) * (pow(x, 2*i+1) / factorial(2*i + 1));
 			}
 
-			return Float.floatToIntBits(sum);
+			return Float.floatToIntBits(result);
 		}
 
 		int cosine() {
-			float sum, t, rad;
-			sum = t = rad = Float.intBitsToFloat(a) * (3.14159F/180.0F);
+			float x = Float.intBitsToFloat(a);
+			float result = 0;
 
 			for (int i = 0; i < 100; i++) {
-				t = (t * (-1) * rad * rad) / (2 * i * (2 * i + 1));
-				sum += t;
+				result += pow(-1, i) * (pow(x, 2*i) / factorial(2*i));
 			}
 
-			return Float.floatToIntBits(sum);
+			return Float.floatToIntBits(result);
 		}
 
 		int tangent() {
@@ -467,7 +464,14 @@ class Processor {
 		}
 
 		int exponent() {
-			return Float.floatToIntBits((float) Math.pow(Math.E, Float.intBitsToFloat(a)));
+			float x = Float.intBitsToFloat(a);
+			float result = 0;
+
+			for (int i = 0; i < 100; i++) {
+				result += pow(x, i) / factorial(i);
+			}
+
+			return Float.floatToIntBits(result);
 		}
 
 		int logarithm() {
@@ -477,7 +481,30 @@ class Processor {
 		int squareRoot() {
 			return Float.floatToIntBits((float) Math.sqrt(Float.intBitsToFloat(a)));
 		}
-		
-		
+
+		// Various math functions
+		int factorial(int num) {
+			if (num == 1) {
+				return 1;
+			}
+			return factorial(num-1) * num;
+		}
+
+		float pow(float num, int power) {
+			if (power < 0) {
+				throw new RuntimeException("Custom power function does not support negative powers");
+			}
+
+			if (power == 0) {
+				return 1;
+			}
+
+			float sum = num;
+			for (int i = 1; i < power; i++) {
+				sum *= num;
+			}
+
+			return sum;
+		}
 	}
 }
