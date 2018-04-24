@@ -225,33 +225,35 @@ class Processor {
 			int signB = b & 0x80000000;
 			int expA = a & 0x7F800000;
 			int expB = b & 0x7F800000;
-			int mantissaA = a & 0x007FFFFF;
-			int mantissaB = b & 0x007FFFFF;
+			int mantissaA = (a & 0x007FFFFF) | 0x00800000; // Add the implicit one to both mantissa
+			int mantissaB = (b & 0x007FFFFF) | 0x00800000;
 			
 			if (expA > expB){
-				mantissaB >>= expA >> 23 - expB >> 23;
-				expB = expA;
+				mantissaB >>>= ((expA >>> 23) - (expB >>> 23));
+				expSum = expA;
 			}
 			else {
-				mantissaA >>= expB >> 23 - expA >> 23;
-				expA = expB;
+				mantissaA >>>= ((expB >>> 23) - (expA >>> 23));
+				expSum = expB;
+			}
+			// !!!!!!!!!! Left off here
+			if (signA != signB) {
+				mantissaSum = mantissaA - mantissaB;
+			}
+			else {
+				mantissaSum = mantissaA + mantissaB;
 			}
 			
-			expSum = expA;
-			
-			if (signA != signB)
-				mantissaSum = mantissaA - mantissaB;
-			else
-				mantissaSum = mantissaA + mantissaB;
-			
-			if ((mantissaSum & 0x80000000) == 0x80000000)
+			if ((mantissaSum & 0x80000000) == 0x80000000) {
 				signSum = 0x80000000;
-			else
+			}
+			else {
 				signSum = 0x00000000;
+			}
 			
 			int shiftCheck = mantissaSum >> 23;
 			int shift = ((int) Math.log(shiftCheck) / (int) Math.log(2));
-			mantissaSum >>= shift;
+			mantissaSum >>>= shift;
 			expSum += shift;
 			
 			sum = signSum | expSum | mantissaSum;
@@ -484,10 +486,11 @@ class Processor {
 
 		// Various math functions
 		int factorial(int num) {
-			if (num == 1) {
-				return 1;
+			int result = 1;
+			for(int i = 2; i <= num; i++) {
+				result *= i;
 			}
-			return factorial(num-1) * num;
+			return result;
 		}
 
 		float pow(float num, int power) {
