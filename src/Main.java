@@ -25,7 +25,8 @@ public class Main {
 		Processor processor = new Processor(instrBins.stream().mapToInt(i -> i).toArray());
 		int[] results = processor.start();
 		for (int result : results) {
-			printBits(result);
+			System.out.println(Float.intBitsToFloat(result));
+			//printBits(result);
 		}
 
 	}
@@ -41,20 +42,26 @@ public class Main {
 		}
 		
 		int opcode = Arrays.asList(INSTRUCTION_NAMES).indexOf(tokens[0]) << 27; // Index in array is the same as the opcode, so just shift that into the right place
-		
+		if (opcode == -1) {
+			throw new RuntimeException("Bad instruction keyword: " + tokens[0]);
+		}
+
 		int dest = Integer.parseInt(tokens[1].replace("R", "")) << 23;
 		
 		int src1 = 0, src2 = 0; // src2 has a max value of 524288 for integer immediates, but that shouldn't matter
 							// because raising something to that power would go out of bounds for single precision anyway
-		// Get, which is special in that it only has a "destination"
-		if (opcode >>> 27 == 1) { } else if (opcode >>> 27 == 0) { // F Type - Parse floating point stuff
+		
+		if (opcode >>> 27 == 1) {
+			// Get, which is special in that it only has a "destination"
+		} else if (opcode >>> 27 == 0) { // F Type - Parse floating point stuff
 			src1 = Float.floatToIntBits(Float.parseFloat(tokens[2].replace("#", "")));
-			int sign = (src1 >>> 9) & 0x20000;
+
+			int sign = (src1 >>> 9) & 0x400000;
 			int exp = ((((src1 & 0x7f800000) >>> 23) - 112) << 17) & 0x3E0000;
 			int manti = (src1 >>> 7) & 0x1FFFF;
 			
 			src1 = sign | exp | manti;
-		} else if (opcode >> 27 == 15) { // I type - Parse the first and second source, with the second being an unsigned int
+		} else if (opcode >>> 27 == 15) { // I type - Parse the first and second source, with the second being an unsigned int
 			src1 = Integer.parseInt(tokens[2].replace("R", "")) << 19;
 			src2 = Integer.parseInt(tokens[3].replace("#", ""));
 		} else { // R type - All sources are registers
@@ -63,7 +70,7 @@ public class Main {
 				src2 = Integer.parseInt(tokens[3].replace("R", "")) << 15;
 			}
 		}
-		
+
 		return opcode | dest | src1 | src2; // Assumes that all pieces have already been shifted into the right place
 	}
 	
@@ -79,7 +86,7 @@ public class Main {
 		return toBooleanArray(Float.floatToIntBits(num));
 	}
 	
-	private static void printBits(int arrBits) {
+	public static void printBits(int arrBits) {
 		printBits(toBooleanArray(arrBits));
 	}
 
