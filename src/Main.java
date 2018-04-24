@@ -42,7 +42,10 @@ public class Main {
 		}
 		
 		int opcode = Arrays.asList(INSTRUCTION_NAMES).indexOf(tokens[0]) << 27; // Index in array is the same as the opcode, so just shift that into the right place
-		
+		if (opcode == -1) {
+			throw new RuntimeException("Bad instruction keyword: " + tokens[0]);
+		}
+
 		int dest = Integer.parseInt(tokens[1].replace("R", "")) << 23;
 		
 		int src1 = 0, src2 = 0; // src2 has a max value of 524288 for integer immediates, but that shouldn't matter
