@@ -1,24 +1,21 @@
 import java.util.ArrayList;
 import java.util.List;
 
-public class Processor {
+class Processor {
 	
 	private int[] instructions;
 	
-	ControlUnit control;
-	RegisterFile registerFile;
-	ArithmeticLogicUnit alu;
+	private ControlUnit control = new ControlUnit();
+	private RegisterFile registerFile = new RegisterFile();
+	private ArithmeticLogicUnit alu = new ArithmeticLogicUnit();
 	
 	
-	public Processor(int[] instructions) {
+	Processor(int[] instructions) {
 		this.instructions = instructions;
-		this.control = new ControlUnit();
-		this.registerFile = new RegisterFile();
-		this.alu = new ArithmeticLogicUnit();
 	}
 
 	// Will run until it exhausts all instructions. Returns the result of all Get statements or the contents of all the registers if there weren't any
-	public int[] start() {
+	int[] start() {
 		List<Integer> outputs = new ArrayList<>();
 
 		for (int instr : instructions) {
@@ -55,6 +52,7 @@ public class Processor {
 				wd = Float.floatToIntBits(customToSinglePrecision(range(instr, 22, 0)));
 			}
 
+			registerFile.inputWD(wd);
 			registerFile.process(); // Update the register file for the new value
 		}
 
@@ -64,7 +62,7 @@ public class Processor {
 	// Mask a range of bits and return them shifted to the right
 	// Range is inclusive on both ends
 	// Left is more significant, right is less (31-0)
-	public int range(int bits, int left, int right) {
+	private int range(int bits, int left, int right) {
 		if (right > left) {
 			throw new RuntimeException("Bad range parameters: " + left + ", " + right);
 		}
@@ -81,7 +79,7 @@ public class Processor {
 	}
 	
 	// Expects a 23 bit custom precision number as stated in the first milestone document
-	static float customToSinglePrecision(int bits) {
+	private static float customToSinglePrecision(int bits) {
 		int sign = (bits & 0x200000) << 9;
 		int exp = (((bits >>> 17) + 112) << 23) & 0x7F800000;
 		int manti = (bits & 0x1FFFF) << 7;
@@ -94,23 +92,23 @@ public class Processor {
 		
 		int opcode = 0;
 		
-		public ControlUnit() {
+		ControlUnit() {
 			
 		}
 		
-		public void input(int opcode) {
+		void input(int opcode) {
 			this.opcode = opcode;
 		}
 		
-		public int regWrite() {
+		int regWrite() {
 			return 1;
 		}
 		
-		public int regWriteSrc() {
+		int regWriteSrc() {
 			return opcode == 0 ? 1 : 0;
 		}
 		
-		public int aluSrc() {
+		int aluSrc() {
 			if (opcode == 0) {
 				return 1;
 			}
@@ -122,7 +120,7 @@ public class Processor {
 			return 0;
 		}
 
-		public int aluOp() {
+		int aluOp() {
 			return opcode == 1?0:opcode-2;
 		}
 	}
@@ -134,39 +132,39 @@ public class Processor {
 		int WR, WD;
 		int regWrite;
 		
-		public RegisterFile() {
+		RegisterFile() {
 			registers = new int[16];
 		}
 		
-		public void inputRR1(int RR1) {
+		void inputRR1(int RR1) {
 			this.RR1 = RR1;
 		}
 		
-		public void inputRR2(int RR2) {
+		void inputRR2(int RR2) {
 			this.RR2 = RR2;
 		}
 		
-		public void inputWR(int WR) {
+		void inputWR(int WR) {
 			this.WR = WR;
 		}
 		
-		public void inputWD(int WD) {
+		void inputWD(int WD) {
 			this.WD = WD;
 		}
 		
-		public void inputRegWrite(int regWrite) {
+		void inputRegWrite(int regWrite) {
 			this.regWrite = regWrite;
 		}
 		
-		public int outputRD1() {
+		int outputRD1() {
 			return registers[RR1];
 		}
 		
-		public int outputRD2() {
+		int outputRD2() {
 			return registers[RR2];
 		}
 		
-		public void process() {
+		void process() {
 			if (regWrite == 0) {
 				return;
 			}
@@ -179,23 +177,23 @@ public class Processor {
 		int aluOp;
 		int a, b;
 		
-		public ArithmeticLogicUnit() {
+		ArithmeticLogicUnit() {
 			
 		}
 		
-		public void inputAluOp(int aluOp) {
+		void inputAluOp(int aluOp) {
 			this.aluOp = aluOp;
 		}
 		
-		public void inputA(int a) {
+		void inputA(int a) {
 			this.a = a;
 		}
 		
-		public void inputB(int b) {
+		void inputB(int b) {
 			this.b = b;
 		}
 		
-		public int process() {
+		int process() {
 			switch (aluOp) {
 				case 0: return a;
 				case 1: return addition();
@@ -221,7 +219,7 @@ public class Processor {
 			throw new RuntimeException("Invalid aluOps value: " + aluOp); // Should never be reached
 		}
 		
-		public int addition() {
+		int addition() {
 			int sum, signSum, expSum, mantissaSum;
 			int signA = a & 0x80000000;
 			int signB = b & 0x80000000;
@@ -234,7 +232,7 @@ public class Processor {
 				mantissaB >>= expA >> 23 - expB >> 23;
 				expB = expA;
 			}
-			else{
+			else {
 				mantissaA >>= expB >> 23 - expA >> 23;
 				expA = expB;
 			}
@@ -261,16 +259,16 @@ public class Processor {
 			return sum;
 		}
 		
-		public int subtraction() {
+		int subtraction() {
 			this.b = this.b ^ 0x80000000; // quick negation to reuse the addition function
 			return addition();
 		}
 
-		private int negate() {
+		int negate() {
 			return Float.floatToIntBits(-Float.intBitsToFloat(a));
 		}
 		
-		public int multiplication() {
+		int multiplication() {
 			int sum, signSum, expSum, mantissaSum;
 			int signA = a & 0x80000000;
 			int signB = b & 0x80000000;
@@ -296,11 +294,11 @@ public class Processor {
 			return 0; // TODO
 		}
 		
-		public int division() {
+		int division() {
 			return Float.floatToIntBits(Float.intBitsToFloat(a)/Float.intBitsToFloat(b));
 		}
 		
-		private int floor() {
+		int floor() {
 			int exp = a & 0x7F800000;
 			
 			if (Float.intBitsToFloat(exp) < 1 && Float.intBitsToFloat(exp) > 0 && Float.intBitsToFloat(a) < 0)
@@ -321,7 +319,7 @@ public class Processor {
 			return power | mantissa;
 		}
 		
-		private int ceiling() {
+		int ceiling() {
 			int exp = a & 0x7F800000;
 			
 			if (Float.intBitsToFloat(exp) < 1 && Float.intBitsToFloat(exp) > 0 && Float.intBitsToFloat(a) < 0)
@@ -342,7 +340,7 @@ public class Processor {
 			return power | mantissa;
 		}
 
-		private int round() {
+		int round() {
 			int exp = a & 0x7F800000;
 			
 			if (Float.intBitsToFloat(exp) < 1 && Float.intBitsToFloat(exp) > 0 && Float.intBitsToFloat(a) < 0)
@@ -359,15 +357,15 @@ public class Processor {
 				return floor();
 		}
 
-		private int absolute() {
+		int absolute() {
 			return a & 0x7FFFFFFF; // Mask out the sign bit to make it positive
 		}
 
-		private int inverse() {
+		int inverse() {
 			return a ^ 0x80000000; // XOR the sign bit with one to negate
 		}
 		
-		public int minimum() {
+		int minimum() {
 			//Mask and isolate the sign bits of each number
 			int signA = a & 0x80000000;
 			int signB = b & 0x80000000;
@@ -399,7 +397,7 @@ public class Processor {
 				return b;
 		}
 		
-		public int maximum() {
+		int maximum() {
 			//Mask and isolate the sign bits of each number
 			int signA = a & 0x80000000;
 			int signB = b & 0x80000000;
@@ -431,7 +429,7 @@ public class Processor {
 				return b;
 		}
 		
-		public int power() {
+		int power() {
 			float result = 0;
 			for (int i =0; i < b; i++) {
 				result += Float.intBitsToFloat(a);
@@ -439,7 +437,7 @@ public class Processor {
 			return Float.floatToIntBits(result);
 		}
 
-		private int sine() {
+		int sine() {
 			float sum, t, rad;
 			rad = Float.intBitsToFloat(a) * (3.14159F/180.0F);
 			sum = t = 1;
@@ -452,7 +450,7 @@ public class Processor {
 			return Float.floatToIntBits(sum);
 		}
 
-		private int cosine() {
+		int cosine() {
 			float sum, t, rad;
 			sum = t = rad = Float.intBitsToFloat(a) * (3.14159F/180.0F);
 
@@ -464,19 +462,19 @@ public class Processor {
 			return Float.floatToIntBits(sum);
 		}
 
-		private int tangent() {
+		int tangent() {
 			return sine() / cosine();
 		}
 
-		private int exponent() {
+		int exponent() {
 			return Float.floatToIntBits((float) Math.pow(Math.E, Float.intBitsToFloat(a)));
 		}
 
-		private int logarithm() {
+		int logarithm() {
 			return Float.floatToIntBits((float) Math.log(Float.intBitsToFloat(a))); // TODO
 		}
 
-		private int squareRoot() {
+		int squareRoot() {
 			return Float.floatToIntBits((float) Math.sqrt(Float.intBitsToFloat(a)));
 		}
 		
