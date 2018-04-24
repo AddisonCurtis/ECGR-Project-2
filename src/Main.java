@@ -25,7 +25,8 @@ public class Main {
 		Processor processor = new Processor(instrBins.stream().mapToInt(i -> i).toArray());
 		int[] results = processor.start();
 		for (int result : results) {
-			printBits(result);
+			System.out.println(Float.intBitsToFloat(result));
+			//printBits(result);
 		}
 
 	}
