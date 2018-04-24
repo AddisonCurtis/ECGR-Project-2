@@ -1,16 +1,82 @@
+import java.util.ArrayList;
+import java.util.List;
+
 public class Processor {
 	
 	private int[] instructions;
 	
 	ControlUnit control;
-	
 	RegisterFile registerFile;
+	ArithmeticLogicUnit alu;
 	
 	
 	public Processor(int[] instructions) {
 		this.instructions = instructions;
 		this.control = new ControlUnit();
 		this.registerFile = new RegisterFile();
+		this.alu = new ArithmeticLogicUnit();
+	}
+
+	// Will run until it exhausts all instructions. Returns the result of all Get statements or the contents of all the registers if there weren't any
+	public int[] start() {
+		List<Integer> outputs = new ArrayList<>();
+
+		for (int instr : instructions) {
+			if (range(instr, 31, 27) == 1) { // If the command is a Get, then just grab the value from the register, log it, and skip the instruction
+				outputs.add(registerFile.registers[range(instr, 26, 23)]);
+				continue;
+			}
+
+			control.input(range(instr, 31, 27));
+
+			// Set up register file inputs
+			registerFile.inputRegWrite(control.regWrite());
+			registerFile.inputRR1(range(instr, 22, 19));
+			registerFile.inputRR2(range(instr, 18, 15));
+			registerFile.inputWR(range(instr, 26, 23));
+
+			// Set up ALU inputs
+			alu.inputAluOp(control.aluOp());
+			alu.inputA(registerFile.outputRD1());
+			// Mux
+			int b;
+			if (control.aluSrc()==0) {
+				b = registerFile.outputRD2();
+			}
+			else {
+				b = range(instr, 18, 0);
+			}
+			alu.inputB(b);
+
+			int wd;
+			if (control.regWriteSrc() == 0) {
+				wd = alu.process();
+			} else {
+				wd = Float.floatToIntBits(customToSinglePrecision(range(instr, 22, 0)));
+			}
+
+			registerFile.process(); // Update the register file for the new value
+		}
+
+		return outputs.stream().mapToInt(i -> i).toArray(); // Dealing with type safety gone wrong
+	}
+
+	// Mask a range of bits and return them shifted to the right
+	// Range is inclusive on both ends
+	// Left is more significant, right is less (31-0)
+	public int range(int bits, int left, int right) {
+		if (right > left) {
+			throw new RuntimeException("Bad range parameters: " + left + ", " + right);
+		}
+
+		int mask = 0xFFFFFFFF;
+		mask >>= 31 - (left - right);
+		return bits & mask;
+	}
+
+	// Quick function to make it a bit more clear whats being done
+	static int mux(int control, int[] inputs) {
+		return inputs[control];
 	}
 	
 	// Expects a 23 bit custom precision number as stated in the first milestone document
@@ -21,12 +87,8 @@ public class Processor {
 		
 		return Float.intBitsToFloat(sign | exp | manti);
 	}
-	
-	// Quick function to make it a bit more clear whats being done
-	static int mux(int control, int[] inputs) {
-		return inputs[control];
-	}
-	
+
+
 	public static class ControlUnit {
 		
 		int opcode = 0;
@@ -44,7 +106,7 @@ public class Processor {
 		}
 		
 		public int regWriteSrc() {
-			return new int[]{1, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0}[opcode];
+			return opcode == 0 ? 1 : 0;
 		}
 		
 		public int aluSrc() {
@@ -120,7 +182,7 @@ public class Processor {
 			
 		}
 		
-		public void inputSluOp(int aluOp) {
+		public void inputAluOp(int aluOp) {
 			this.aluOp = aluOp;
 		}
 		
