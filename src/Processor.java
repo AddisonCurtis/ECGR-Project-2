@@ -343,19 +343,18 @@ public class Processor {
 		}
 
 		private int round() {
-			int sign = a & 0x80000000; //Mask and isolate the number's sign bit
-			int exp = a & 0xEF800000; //Mask and isolate the number's exponent bits
-			int mantissa = a & 0x007FFFFF; //Mask and isolate the number's mantissa bits
-			sign >>= 31; //Shift the sign bit over all the way to the right
-			exp >>= 23; //Shift the exponent bits all the way over to the right
-
-			//Isolate the fraction part of the mantissa by shifting the whole number to the left by 9 (sign + exponent bits) minus the bias, then get the first two fraction bits by shifting it all to the right again by 30
-			int fraction = mantissa << 9 + exp - 127 >> 30;
-
-			//If the two remaining fraction bits are greater than or equal to 2 (fraction >= .5), round up using the ceiling() function
-			if (fraction >= 2)
+			int exp = a & 0x7F800000;
+			
+			if (Float.intBitsToFloat(exp) < 1 && Float.intBitsToFloat(exp) > 0 && Float.intBitsToFloat(a) < 0)
+				return 0x00000000;
+			else if (Float.intBitsToFloat(exp) < 1 && Float.intBitsToFloat(exp) > 0 && Float.intBitsToFloat(a) >= 0)
+				return 0x3F800000;
+			int mantissa = a & 0x007FFFFF;
+			
+			mantissa >>= (int) ((23 - Math.log(Float.intBitsToFloat(exp)) / Math.log(2)) - 1);
+			
+			if (((mantissa & 0x00000001) == 1 && (a & 0x80000000) == 0) || ((mantissa & 0x00000001) == 0 && (a & 0x80000000) == 0x80000000))
 				return ceiling();
-				//Otherwise, round down using the floor() function
 			else
 				return floor();
 		}
