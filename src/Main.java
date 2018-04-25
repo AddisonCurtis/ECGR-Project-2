@@ -27,7 +27,6 @@ public class Main {
 		System.out.println("----Results----");
 		for (int result : results) {
 			System.out.println(Float.intBitsToFloat(result));
-			//printBits(result);
 		}
 
 	}
@@ -53,7 +52,7 @@ public class Main {
 		                        // because raising something to that power would go out of bounds for single precision anyway
 
 		if (opcode >>> 27 == 1) {
-			// Get, which is special in that it only has a "destination"
+			// Get, which is special in that it only has a "destination", so let it pass without anything else
 		} else if (opcode >>> 27 == 0) { // F Type - Parse floating point stuff
 			src1 = Float.floatToIntBits(Float.parseFloat(tokens[2].replace("#", "")));
 
@@ -75,41 +74,13 @@ public class Main {
 		return opcode | dest | src1 | src2; // Assumes that all pieces have already been shifted into the right place
 	}
 
-	private static boolean[] toBooleanArray(int num) {
-		boolean[] bits = new boolean[32];
-		for (int i = 31; i >= 0; --i) {
-			bits[31-i] = (num & (1 << i)) != 0;
-		}
-		return bits;
-	}
-
-	public static String rightPad(String str, int length) {
+	static String rightPad(String str, int length) {
 		StringBuilder strBuilder = new StringBuilder(str);
 		while (strBuilder.length() < length) {
 			strBuilder.append(" ");
 		}
 		str = strBuilder.toString();
 		return str;
-	}
-
-	public static boolean[] toBooleanArray(float num) {
-		return toBooleanArray(Float.floatToIntBits(num));
-	}
-
-	public static void printBits(int arrBits) {
-		printBits(toBooleanArray(arrBits));
-	}
-
-	private static void printBits(float num) {
-		printBits(Float.floatToIntBits(num));
-	}
-
-	private static void printBits(boolean[] arr) {
-		System.out.print("[");
-		for(boolean temp : arr) {
-			System.out.print(temp?"1":"0");
-		}
-		System.out.println("]");
 	}
 
 }

@@ -603,7 +603,7 @@ class Processor {
 		}
 
 		int logarithm() {
-			return Float.floatToIntBits((float) Math.log(Float.intBitsToFloat(a))); // TODO
+			return Float.floatToIntBits((float) Math.log(Float.intBitsToFloat(a)));
 		}
 
 		int squareRoot() {
