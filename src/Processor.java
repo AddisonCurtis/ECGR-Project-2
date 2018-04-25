@@ -59,7 +59,7 @@ class Processor {
 			}
 
 			registerFile.inputWD(wd);
-			System.out.println(++count + ": " + Main.rightPad(Float.intBitsToFloat(wd) + "", 14) + "-> R" + range(instr, 26, 23));
+			System.out.println(Main.rightPad(Main.rightPad(++count + ":", 4) +Float.intBitsToFloat(wd) + "", 17) + "-> R" + range(instr, 26, 23));
 			registerFile.process(); // Update the register file for the new value
 		}
 
@@ -84,7 +84,7 @@ class Processor {
 	}
 
 	// Expects a 23 bit custom precision number as stated in the first milestone document
-	public static float customToSinglePrecision(int bits) {
+	private static float customToSinglePrecision(int bits) {
 		int sign = (bits & 0x400000) << 9;
 		int exp = ((((bits & 0x3E0000) >>> 17) + 112) << 23) & 0x7F800000;
 		int manti = (bits & 0x1FFFF) << 7;
@@ -465,7 +465,7 @@ class Processor {
 				mantissa >>= 1;
 			}
 
-			int sumBits = g * 100 + s * 10 + r * 1;
+			int sumBits = g * 100 + s * 10 + r;
 
 			if ((a & 0x80000000) == 0){
 				if (sumBits > 100)

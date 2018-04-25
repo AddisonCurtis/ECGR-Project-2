@@ -61,8 +61,6 @@ public class Main {
 			int exp = ((((src1 & 0x7f800000) >>> 23) - 112) << 17) & 0x3E0000;
 			int manti = (src1 >>> 7) & 0x1FFFF;
 
-
-
 			src1 = sign | exp | manti;
 		} else if (opcode >>> 27 == 15) { // I type - Parse the first and second source, with the second being an unsigned int
 			src1 = Integer.parseInt(tokens[2].replace("R", "")) << 19;
