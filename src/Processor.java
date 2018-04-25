@@ -55,6 +55,7 @@ class Processor {
             }
             
             registerFile.inputWD(wd);
+            System.out.println(Main.rightPad(Float.intBitsToFloat(wd) + "", 11) + "-> R" + range(instr, 26, 23));
             registerFile.process(); // Update the register file for the new value
         }
         
@@ -220,8 +221,6 @@ class Processor {
             if(a==0x40000000 || b==0x40000000) { // If adding to zero, return early
                 return a==0x40000000?b:a;
             }
-            Main.printBits(a);
-            Main.printBits(b);
             
             int sumSign, sumExp, sumMant;
             int signA = a & 0x80000000;
@@ -230,11 +229,6 @@ class Processor {
             int expB = b & 0x7F800000;
             int mantissaA = (a & 0x007FFFFF) | 0x00800000; // Add the implicit one to both mantissa
             int mantissaB = (b & 0x007FFFFF) | 0x00800000;
-            System.out.print("A: ");
-            Main.printBits(a);
-            System.out.print("B: ");
-            Main.printBits(b);
-            //System.out.println(Float.intBitsToFloat(b));
             
             // Rewrite smaller number to have the same exponent as the larger one
             if (expA > expB){
@@ -245,12 +239,7 @@ class Processor {
                 mantissaA >>>= ((expB >>> 23) - (expA >>> 23));
                 sumExp = expB;
             }
-            
-            // Add the mantissa together
-            //System.out.print("A mant: ");
-            //Main.printBits(mantissaA);
-            //System.out.print("B mant: ");
-            //Main.printBits(mantissaB);
+
             if (signA == signB) {
                 sumMant = mantissaA + mantissaB;
             }
@@ -259,8 +248,7 @@ class Processor {
             } else {                  // B is negative, A isn't
                 sumMant = mantissaA - mantissaB;
             }
-            
-            //System.out.print("Post subtract manti: ");
+
             //Main.printBits(sumMant);
             if (sumMant < 0) { // If the result of adding the mantissa together is negative, then the
                 // sign of the sum will need to be negative and the mantissa needs to be a positive int
@@ -273,10 +261,6 @@ class Processor {
             if (signA == signB) {
                 sumSign = signA;
             }
-            
-            //System.out.print("Abs manti: ");
-            //Main.printBits(sumMant);
-            //Main.printBits(sumExp);
             
             // Check if sum is normal, if not, then normalize it
             if (sumMant >>> 23 == 0) { // Leading zero, need to left shift
@@ -300,10 +284,8 @@ class Processor {
             // Check for over and underflow
             if ((sumExp >>> 23)-127 < -126) { // Too small
                 sumMant = 0; // round to zero
-                System.out.println("Rounded to zero");
             } else if ((sumExp >>> 23)-127 > 127) { // Too big
                 sumExp = 127 << 23; // Clamp to max
-                System.out.println("Clamped to max");
             }
             
             return sumSign | sumExp | sumMant;
@@ -407,8 +389,6 @@ class Processor {
                 expProd++;
                 expProd <<= 23;
             }
-            
-            System.out.println();
             
             mantissaProd = Float.floatToIntBits(integerProd);
             
@@ -585,7 +565,7 @@ class Processor {
         int power() {
             float result = 0;
             for (int i =0; i < b; i++) {
-                result += Float.intBitsToFloat(a);
+                result *= Float.intBitsToFloat(a);
             }
             return Float.floatToIntBits(result);
         }
@@ -594,7 +574,7 @@ class Processor {
             float x = Float.intBitsToFloat(a);
             float result = 0;
             
-            for (int i = 0; i < 100; i++) {
+            for (int i = 0; i < 12; i++) {
                 result += pow(-1, i) * (pow(x, 2*i+1) / factorial(2*i + 1));
             }
             
@@ -605,7 +585,7 @@ class Processor {
             float x = Float.intBitsToFloat(a);
             float result = 0;
             
-            for (int i = 0; i < 100; i++) {
+            for (int i = 0; i < 12; i++) {
                 result += pow(-1, i) * (pow(x, 2*i) / factorial(2*i));
             }
             
@@ -620,7 +600,7 @@ class Processor {
             float x = Float.intBitsToFloat(a);
             float result = 0;
             
-            for (int i = 0; i < 100; i++) {
+            for (int i = 0; i < 12; i++) {
                 result += pow(x, i) / factorial(i);
             }
             
