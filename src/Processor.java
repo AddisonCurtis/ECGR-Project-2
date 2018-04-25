@@ -3,6 +3,8 @@ import java.util.List;
 
 class Processor {
 
+	private int count = 0; // For display purposes
+
 	private int[] instructions;
 
 	private ControlUnit control = new ControlUnit();
@@ -17,7 +19,8 @@ class Processor {
 	int[] start() {
 		List<Integer> outputs = new ArrayList<>();
 
-		for (int instr : instructions) {
+		for (int i = 0; i < instructions.length; i++) {
+			int instr = instructions[i];
 			if (range(instr, 31, 27) == 1) { // If the command is a Get, then just grab the value from the register, log it, and skip the instruction
 				outputs.add(registerFile.registers[range(instr, 26, 23)]);
 				continue;
@@ -36,10 +39,9 @@ class Processor {
 			alu.inputA(registerFile.outputRD1());
 			// Mux
 			int b;
-			if (control.aluSrc()==0) {
+			if (control.aluSrc() == 0) {
 				b = registerFile.outputRD2();
-			}
-			else {
+			} else {
 				b = range(instr, 18, 0);
 			}
 			alu.inputB(b);
@@ -49,14 +51,21 @@ class Processor {
 			if (control.regWriteSrc() == 0) {
 				wd = alu.process();
 			} else {
-				wd = Float.floatToIntBits(customToSinglePrecision(range(instr, 22, 0)));
+				if (Main.precisionError.get(i)) { // Set wd to a good value if it went out of bounds
+					wd = Main.goodVal.get(i);
+				} else {
+					wd = Float.floatToIntBits(customToSinglePrecision(range(instr, 22, 0)));
+				}
 			}
 
 			registerFile.inputWD(wd);
-			System.out.println(Main.rightPad(Float.intBitsToFloat(wd) + "", 11) + "-> R" + range(instr, 26, 23));
+			System.out.println(++count + ": " + Main.rightPad(Float.intBitsToFloat(wd) + "", 14) + "-> R" + range(instr, 26, 23));
 			registerFile.process(); // Update the register file for the new value
 		}
 
+		if (outputs.size() == 0) {
+			System.out.println("No Get instructions in program. Outputting all register values");
+		}
 		return outputs.size() == 0 ? registerFile.registers : outputs.stream().mapToInt(i -> i).toArray(); // Dealing with type safety gone wrong
 	}
 
@@ -75,7 +84,7 @@ class Processor {
 	}
 
 	// Expects a 23 bit custom precision number as stated in the first milestone document
-	private static float customToSinglePrecision(int bits) {
+	public static float customToSinglePrecision(int bits) {
 		int sign = (bits & 0x400000) << 9;
 		int exp = ((((bits & 0x3E0000) >>> 17) + 112) << 23) & 0x7F800000;
 		int manti = (bits & 0x1FFFF) << 7;
@@ -219,7 +228,7 @@ class Processor {
 				return a==0x40000000?b:a;
 			}
 
-			int sumSign, sumExp, sumMant = 0;
+			int sumSign, sumExp, sumMant;
 			int signA = a & 0x80000000;
 			int signB = b & 0x80000000;
 			int expA = a & 0x7F800000;
@@ -228,15 +237,18 @@ class Processor {
 			int mantissaB = (b & 0x007FFFFF) | 0x00800000;
 
 			// Rewrite smaller number to have the same exponent as the larger one
-			if (expA > expB){
+			if (expA > expB) {
 				mantissaB >>>= ((expA >>> 23) - (expB >>> 23));
 				sumExp = expA;
-			} else {
+			} else { // Also catches the case of them being equal, but it doesn't matter because the difference would be zero
 				mantissaA >>>= ((expB >>> 23) - (expA >>> 23));
 				sumExp = expB;
 			}
 
-			if (signA != signB) {
+			if (signA == signB) {
+				sumMant = mantissaA + mantissaB;
+				sumSign = signA;
+			} else { // Both are either negative or positive
 				if (signA < signB) { // A is negative, B isn't
 					sumMant = -mantissaA + mantissaB;
 
@@ -249,13 +261,9 @@ class Processor {
 					// sign bit needs to be set
 					sumSign = 0x80000000;
 					sumMant =  Math.abs(sumMant);
-				} else { // If it's still positive, then
+				} else { // If it's still positive, then the sign bit is zero
 					sumSign = 0x00000000;
 				}
-
-			} else { // Both are either negative or positive
-				sumMant = mantissaA + mantissaB;
-				sumSign = signA;
 			}
 
 			// Check if sum is normal, if not, then normalize it
@@ -282,9 +290,10 @@ class Processor {
 				sumMant = 0; // round to zero
 			} else if ((sumExp >>> 23)-127 > 127) { // Too big
 				sumExp = 127 << 23; // Clamp to max
+				sumMant = -1;
 			}
 
-			return sumSign | sumExp | sumMant;
+			return (sumSign & 0x80000000) | (sumExp & 0x7FE00000) | (sumMant & 0x007FFFFF);
 		}
 
 		int subtraction() {
@@ -557,8 +566,8 @@ class Processor {
 		}
 
 		int power() {
-			float result = 0;
-			for (int i =0; i < b; i++) {
+			float result = Float.intBitsToFloat(a);
+			for (int i = 1; i < b; i++) {
 				result *= Float.intBitsToFloat(a);
 			}
 			return Float.floatToIntBits(result);
