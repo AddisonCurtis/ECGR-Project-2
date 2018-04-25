@@ -219,7 +219,7 @@ class Processor {
 				return a==0x40000000?b:a;
 			}
 
-			int sumSign, sumExp, sumMant;
+			int sumSign, sumExp, sumMant = 0;
 			int signA = a & 0x80000000;
 			int signB = b & 0x80000000;
 			int expA = a & 0x7F800000;
@@ -231,31 +231,30 @@ class Processor {
 			if (expA > expB){
 				mantissaB >>>= ((expA >>> 23) - (expB >>> 23));
 				sumExp = expA;
-			}
-			else {
+			} else {
 				mantissaA >>>= ((expB >>> 23) - (expA >>> 23));
 				sumExp = expB;
 			}
 
-			if (signA == signB) {
+			if (signA != signB) {
+				if (signA < signB) { // A is negative, B isn't
+					sumMant = -mantissaA + mantissaB;
+
+				} else {             // B is negative, A isn't
+					sumMant = mantissaA - mantissaB;
+				}
+
+				if (sumMant < 0) {
+					// If the result of adding the mantissas together is negative, then the
+					// sign bit needs to be set
+					sumSign = 0x80000000;
+					sumMant =  Math.abs(sumMant);
+				} else { // If it's still positive, then
+					sumSign = 0x00000000;
+				}
+
+			} else { // Both are either negative or positive
 				sumMant = mantissaA + mantissaB;
-			}
-			else if (signA < signB) { // A is negative, B isn't
-				sumMant = -mantissaA + mantissaB;
-			} else {                  // B is negative, A isn't
-				sumMant = mantissaA - mantissaB;
-			}
-
-			//Main.printBits(sumMant);
-			if (sumMant < 0) { // If the result of adding the mantissa together is negative, then the
-				// sign of the sum will need to be negative and the mantissa needs to be a positive int
-				sumSign = 0x80000000;
-				sumMant =  Math.abs(sumMant);
-			} else {
-				sumSign = 0x00000000;
-			}
-
-			if (signA == signB) {
 				sumSign = signA;
 			}
 
