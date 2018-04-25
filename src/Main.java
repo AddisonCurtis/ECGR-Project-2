@@ -51,9 +51,7 @@ public class Main {
 		int src1 = 0, src2 = 0; // src2 has a max value of 524288 for integer immediates, but that shouldn't matter
 		                        // because raising something to that power would go out of bounds for single precision anyway
 
-		if (opcode >>> 27 == 1) {
-			// Get, which is special in that it only has a "destination", so let it pass without anything else
-		} else if (opcode >>> 27 == 0) { // F Type - Parse floating point stuff
+		if (opcode >>> 27 == 0) { // F Type - Parse floating point stuff
 			src1 = Float.floatToIntBits(Float.parseFloat(tokens[2].replace("#", "")));
 
 			int sign = (src1 >>> 9) & 0x400000;
@@ -64,7 +62,7 @@ public class Main {
 		} else if (opcode >>> 27 == 15) { // I type - Parse the first and second source, with the second being an unsigned int
 			src1 = Integer.parseInt(tokens[2].replace("R", "")) << 19;
 			src2 = Integer.parseInt(tokens[3].replace("#", ""));
-		} else { // R type - All sources are registers
+		} else if (opcode >>> 27 != 1) { // R type - All sources are registers
 			src1 = Integer.parseInt(tokens[2].replace("R", "")) << 19;
 			if (tokens.length == 4) {
 				src2 = Integer.parseInt(tokens[3].replace("R", "")) << 15;
