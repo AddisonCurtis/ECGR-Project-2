@@ -224,8 +224,27 @@ class Processor {
 		}
 
 		int addition() {
-			if(a==0x40000000 || b==0x40000000) { // If adding to zero, return early
-				return a==0x40000000?b:a;
+			// Adding with NaN
+			if (a == 0xFFFFFFFF || b == 0xFFFFFFFF || a == 0x7FFFFFFF || b == 0x7FFFFFFF) {
+				return 0xFFFFFFFF;
+			}
+
+			// Adding with (+/-)infinity
+			if (a == 0x7f800000 || b == 0x7f800000 || a == 0xff800000 || b == 0xff800000) {
+				return 0xFFFFFFFF;
+			}
+
+			// Adding with zero
+			if (a == 0 || a == 0x80000000) {
+				return b;
+			}
+			if (b == 0 || b == 0x80000000) {
+				return a;
+			}
+
+			// Adding with the negation of the other value
+			if (a == (b ^ 0x80000000)) {
+				return 0;
 			}
 
 			int sumSign, sumExp, sumMant;
@@ -285,12 +304,9 @@ class Processor {
 				}
 			}
 
-			// Check for over and underflow
-			if ((sumExp >>> 23)-127 < -126) { // Too small
-				sumMant = 0; // round to zero
-			} else if ((sumExp >>> 23)-127 > 127) { // Too big
-				sumExp = 127 << 23; // Clamp to max
-				sumMant = -1;
+			// Check for too large or too small numbers
+			if ((sumExp >>> 23)-127 < -126 || (sumExp >>> 23)-127 > 127) {
+				return 0xFFFFFFFF; // Return NaN
 			}
 
 			return (sumSign & 0x80000000) | (sumExp & 0x7FE00000) | (sumMant & 0x007FFFFF);
