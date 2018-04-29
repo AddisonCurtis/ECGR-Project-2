@@ -302,7 +302,7 @@ class Processor {
 		}
 
 		int negate() {
-			return Float.floatToIntBits(-Float.intBitsToFloat(a));
+			return this.a ^ 0x80000000;
 		}
 
 		int multiplication() {
