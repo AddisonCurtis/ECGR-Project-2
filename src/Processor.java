@@ -447,7 +447,14 @@ class Processor {
             
             mantissa >>>= (int) (23 - Math.log(Float.intBitsToFloat(exp)) / Math.log(2));
             if (Float.intBitsToFloat(a) < 0){
-                mantissa += 0x00000001;
+                if (mantissa == 0x007FFFFF){
+                    power >>= 23;
+                    power++;
+                    power <<= 23;
+                    mantissa = 0;
+                }
+                else
+                    mantissa += 0x00000001;
             }
             mantissa <<= (int) (23 - Math.log(Float.intBitsToFloat(exp)) / Math.log(2));
             
@@ -467,7 +474,14 @@ class Processor {
             
             mantissa >>>= (int) (23 - Math.log(Float.intBitsToFloat(exp)) / Math.log(2));
             if (Float.intBitsToFloat(a) > 0){
-                mantissa += 0x00000001;
+                if (mantissa == 0x007FFFFF){
+                    power >>= 23;
+                    power++;
+                    power <<= 23;
+                    mantissa = 0;
+                }
+                else
+                    mantissa += 0x00000001;
             }
             mantissa <<= (int) (23 - Math.log(Float.intBitsToFloat(exp)) / Math.log(2));
             
