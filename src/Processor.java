@@ -612,7 +612,7 @@ class Processor {
 		}
 
 		int tangent() {
-			return sine() / cosine();
+			return Float.floatToIntBits(Float.intBitsToFloat(sine()) / Float.intBitsToFloat(cosine()));
 		}
 
 		int exponent() {
