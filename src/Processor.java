@@ -323,14 +323,14 @@ class Processor {
         
         int multiplication() {
             // Multiplying with NaN
-            if (a == 0xFFFFFFFF || b == 0xFFFFFFFF || a == 0x7FFFFFFF || b == 0x7FFFFFFF) {
+            if (a == 0xFFFFFFFF || b == 0xFFFFFFFF || a == 0x7FFFFFFF || b == 0x7FFFFFFF)
                 return 0xFFFFFFFF;
-            }
             
             // Multiplying with (+/-)infinity
-            if (a == 0x7f800000 || b == 0x7f800000 || a == 0xff800000 || b == 0xff800000) {
-                return 0xFFFFFFFF;
-            }
+            if (a == 0x7F800000 || b == 0x7F800000)
+                return 0x7F800000;
+            else if (a == 0xFF800000 || b == 0xFF800000)
+                return 0xFF800000;
             
             int signProd, expProd = 0;
             long mantissaProd = 0;
